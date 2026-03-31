@@ -1,0 +1,84 @@
+// Pin definitions
+const int IN1 = 3;
+const int IN2 = 5;
+const int IN3 = 6;
+const int IN4 = 9;
+const int TRIG = 11;
+const int ECHO = 12;
+bool valid = 0;
+// Constants for PWM motor control
+const int motorSpeed = 50;   // Set the maximum motor speed
+const int minDistance = 15;  // Set the minimum distance to stop the motors
+
+const int lineSensorPin = A0;
+int lineValue;
+
+void setup() {
+  delay(3000);
+
+  // Configure pins for motor control
+  Serial.begin(9600);
+  pinMode(lineSensorPin, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  // Configure pins for ultrasonic sensor
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  // Set up Timer 1 for PWM output on pins 9 and 10
+  TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(WGM11);  // Set Fast PWM mode and set OC1A and OC1B on compare match
+  TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);     // Set Fast PWM mode, 1 prescaler
+}
+
+void loop() {
+  // Get distance from ultrasonic sensor
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  unsigned long duration = pulseIn(ECHO, HIGH);
+  unsigned int distance = duration / 29 / 2;
+
+  // Print distance to serial monitor
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Check if distance is less than minimum distance
+  if (distance > 2 && distance < minDistance) {
+
+    valid = 1;
+  }
+  if (valid) {
+
+    // Set motor A to move forward
+    analogWrite(9, motorSpeed);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+
+    // Set motor B to move forward
+    analogWrite(10, motorSpeed);
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  }
+  if (!valid || digitalRead(lineSensorPin) == HIGH) {
+
+   valid = 0;
+    // Set motor A to move forward
+    analogWrite(9, motorSpeed);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+
+    // Set motor B to move backward
+    analogWrite(10, motorSpeed);
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
+
+  // Delay before repeating loop
+  delay(50);
+}
